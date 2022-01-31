@@ -10,17 +10,26 @@ import {
 import { Camera } from "expo-camera";
 import { useState, useEffect, useRef } from "react";
 import { FontAwesome } from "@expo/vector-icons";
+import * as MediaLibrary from "expo-media-library";
 
 export default function App() {
+  const [flash, setFlashLight] = useState("off");
+
   const camRef = useRef(null);
   const [type, setType] = useState(Camera.Constants.Type.back);
   const [hasPermission, setHasPermission] = useState(null);
   const [capturedPhoto, setCapturedPhoto] = useState(null);
   const [open, setOpen] = useState(false);
+  const [valueZoom, setZoom] = useState(0);
 
   useEffect(() => {
     (async () => {
       const { status } = await Camera.requestCameraPermissionsAsync();
+      setHasPermission(status === "granted");
+    })();
+
+    (async () => {
+      const { status } = await MediaLibrary.requestPermissionsAsync();
       setHasPermission(status === "granted");
     })();
   }, []);
@@ -40,9 +49,39 @@ export default function App() {
     }
   }
 
+  function aumentarZoom() {
+    setZoom(valueZoom + 0.1);
+  }
+
+  function diminuirZoom() {
+    setZoom(valueZoom - 0.1);
+  }
+
+  function FlashLightFunc() {
+    if (flash == "off") {
+      setFlashLight("on");
+    } else {
+      setFlashLight("off");
+    }
+  }
+
+  async function savePicture() {
+    const asset = await MediaLibrary.createAssetAsync(capturedPhoto)
+      .then(() => {
+        console.log("Foto salva com succeso");
+      })
+      .catch((err) => console.log(err));
+  }
+
   return (
     <SafeAreaView style={styles.container}>
-      <Camera style={styles.camera} type={type} ref={camRef}>
+      <Camera
+        style={styles.camera}
+        type={type}
+        ref={camRef}
+        zoom={valueZoom}
+        flashMode={flash}
+      >
         <View style={styles.contentButtons}>
           <TouchableOpacity
             style={styles.buttonFlip}
@@ -60,19 +99,45 @@ export default function App() {
           <TouchableOpacity style={styles.buttonCamera} onPress={takePicture}>
             <FontAwesome name="camera" size={23} color="#FFFFFF" />
           </TouchableOpacity>
+
+          <TouchableOpacity
+            style={styles.buttonZoomPlus}
+            onPress={aumentarZoom}
+          >
+            <FontAwesome name="search-plus" size={23} color="#121212" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonZoomMnus}
+            onPress={diminuirZoom}
+          >
+            <FontAwesome name="search-minus" size={23} color="#121212" />
+          </TouchableOpacity>
+          <TouchableOpacity
+            style={styles.buttonFlashLigh}
+            onPress={FlashLightFunc}
+          >
+            <FontAwesome name="flash" size={23} color="#121212" />
+          </TouchableOpacity>
         </View>
       </Camera>
       {capturedPhoto && (
         <Modal animationType="slide" transparent={true} visible={open}>
           <View style={styles.contentModal}>
-            <TouchableOpacity
-              style={styles.closeButton}
-              onPress={() => {
-                setOpen(false);
-              }}
-            >
-              <FontAwesome name="close" size={50} color="#FFF" />
-            </TouchableOpacity>
+            <View style={{ flexDirection: "row", margin: 10 }}>
+              <TouchableOpacity
+                style={{ margin: 10 }}
+                onPress={() => {
+                  setOpen(false);
+                }}
+              >
+                <FontAwesome name="close" size={50} color="#FFF" />
+              </TouchableOpacity>
+
+              <TouchableOpacity style={{ margin: 10 }} onPress={savePicture}>
+                <FontAwesome name="upload" size={50} color="#121212" />
+              </TouchableOpacity>
+            </View>
+
             <Image style={styles.imgPhoto} source={{ uri: capturedPhoto }} />
           </View>
         </Modal>
@@ -134,5 +199,41 @@ const styles = StyleSheet.create({
   imgPhoto: {
     width: "100%",
     height: 400,
+  },
+  buttonZoomPlus: {
+    position: "absolute",
+    bottom: 140,
+    left: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    margin: 20,
+    height: 50,
+    width: 50,
+    borderRadius: 50,
+  },
+  buttonZoomMnus: {
+    position: "absolute",
+    bottom: 210,
+    left: 20,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    margin: 20,
+    height: 50,
+    width: 50,
+    borderRadius: 50,
+  },
+  buttonFlashLigh: {
+    position: "absolute",
+    bottom: 50,
+    right: 140,
+    justifyContent: "center",
+    alignItems: "center",
+    backgroundColor: "#FFFFFF",
+    margin: 20,
+    height: 50,
+    width: 50,
+    borderRadius: 50,
   },
 });
